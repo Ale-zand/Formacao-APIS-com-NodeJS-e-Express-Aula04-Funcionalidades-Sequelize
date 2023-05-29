@@ -2,9 +2,18 @@ const { Op } = require('sequelize')
 const database = require('../models')
 
 class PessoaController {
+  static async pegaPessoasAtivas(req, res){
+    try {
+      const pessoasAtivas = await database.Pessoas.findAll()
+      return res.status(200).json(pessoasAtivas)  
+    } catch (error) {
+      return res.status(500).json(error.message)
+    }
+  }
+  
   static async pegaTodasAsPessoas(req, res){
     try {
-      const todasAsPessoas = await database.Pessoas.findAll()
+      const todasAsPessoas = await database.Pessoas.scope('todos').findAll()
       return res.status(200).json(todasAsPessoas)  
     } catch (error) {
       return res.status(500).json(error.message)
@@ -13,7 +22,7 @@ class PessoaController {
 
   static async consultaTodasAsPessoasApagadas(req, res) {
     try{
-      const todasAsPessoasApagadas = await database.Pessoas.findAll({ 
+      const todasAsPessoasApagadas = await database.Pessoas.scope('todos').findAll({ 
         paranoid: false,
         where: {
           deletedAt: { [Op.not]: null }
@@ -42,10 +51,11 @@ class PessoaController {
   static async consultaPessoaApagada(req, res) {
     const { id } = req.params
     try {
-      const umaPessoaApagada = await database.Pessoas.findOne({
+      const umaPessoaApagada = await database.Pessoas.scope('todos').findOne({
         paranoid: false,
         where: { 
-          id: Number(id) 
+          id: Number(id),
+          deleteAt: { [Op.not]: null }
         }
       })
       return res.status(200).json(umaPessoaApagada)
@@ -68,7 +78,7 @@ class PessoaController {
     const { id } = req.params
     const novasInfos = req.body
     try {
-      await database.Pessoas.update(novasInfos, { where: { id: Number(id) }})
+      await database.Pessoas.scope('todos').update(novasInfos, { where: { id: Number(id) }})
       const pessoaAtualizada = await database.Pessoas.findOne( { where: { id: Number(id) }})
       return res.status(200).json(pessoaAtualizada)
     } catch (error) {
@@ -79,7 +89,7 @@ class PessoaController {
   static async apagaPessoa(req, res) {
     const { id } = req.params
     try {
-      await database.Pessoas.destroy({ where: { id: Number(id) }})
+      await database.Pessoas.scope('todos').destroy({ where: { id: Number(id) }})
       return res.status(200).json({ mensagem: `id ${id} deletado` })
 
     } catch (error) {
@@ -90,7 +100,7 @@ class PessoaController {
   static async restauraPessoa(req, res) {
     const { id } = req.params
     try {
-      await database.Pessoas.restore( {where: { id: Number(id) } })
+      await database.Pessoas.scope('todos').restore( {where: { id: Number(id) } })
       return res.status(200).json({ message: `id ${id} restaurado`})
     } catch (error) {
       return res.status(500).json(error.message)
@@ -100,7 +110,7 @@ class PessoaController {
   static async hardDeletePessoa(req, res) {
     const { id } = req.params
     try {
-      await database.Pessoas.destroy({
+      await database.Pessoas.scope('todos').destroy({
         where: {
           id: Number(id)
         },
